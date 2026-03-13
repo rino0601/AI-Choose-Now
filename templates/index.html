@@ -1,0 +1,1433 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>AI Choose Now!</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Crimson+Text:ital,wght@0,400;0,600;1,400&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  :root {
+    --bg-dark: #0f0f1a;
+    --bg-card: #1a1a2e;
+    --bg-card-alt: #16213e;
+    --accent-gold: #c9a84c;
+    --accent-gold-dim: rgba(201,168,76,0.3);
+    --accent-blue: #7eb8da;
+    --accent-green: #6bcb77;
+    --accent-red: #e74c3c;
+    --text-primary: #e8e8e8;
+    --text-secondary: #a0a0b0;
+    --text-dim: #666680;
+    --border: #2a2a4a;
+    --shadow: rgba(0,0,0,0.4);
+  }
+
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+
+  body {
+    font-family: 'Inter', sans-serif;
+    background: var(--bg-dark);
+    color: var(--text-primary);
+    min-height: 100vh;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+  }
+
+  /* Header */
+  .header {
+    width: 100%;
+    padding: 12px 24px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    background: linear-gradient(180deg, #1a1a2e 0%, var(--bg-dark) 100%);
+    border-bottom: 1px solid var(--border);
+    position: sticky;
+    top: 0;
+    z-index: 100;
+  }
+  .header h1 {
+    font-family: 'Crimson Text', serif;
+    font-size: 1.8em;
+    color: var(--accent-gold);
+    letter-spacing: 2px;
+    text-shadow: 0 0 30px rgba(201,168,76,0.3);
+    white-space: nowrap;
+  }
+  .header-controls {
+    display: flex;
+    gap: 8px;
+    align-items: center;
+    justify-content: flex-end;
+  }
+
+  /* Hamburger menu */
+  .hamburger-btn {
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    color: var(--text-primary);
+    font-size: 1.3em;
+    padding: 6px 10px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    line-height: 1;
+  }
+  .hamburger-btn:hover {
+    border-color: var(--accent-gold);
+    color: var(--accent-gold);
+  }
+  .hamburger-menu {
+    position: relative;
+  }
+  .hamburger-dropdown {
+    display: none;
+    position: absolute;
+    right: 0;
+    top: calc(100% + 6px);
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    box-shadow: 0 8px 24px var(--shadow);
+    min-width: 180px;
+    z-index: 200;
+    overflow: hidden;
+    animation: fadeSlideIn 0.15s ease;
+  }
+  .hamburger-dropdown.open {
+    display: block;
+  }
+  .hamburger-dropdown button {
+    display: block;
+    width: 100%;
+    background: none;
+    border: none;
+    color: var(--text-primary);
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    padding: 12px 18px;
+    text-align: left;
+    cursor: pointer;
+    transition: background 0.15s;
+  }
+  .hamburger-dropdown button:hover {
+    background: rgba(201,168,76,0.1);
+  }
+  .hamburger-dropdown button.danger {
+    color: var(--accent-red);
+  }
+  .hamburger-dropdown button.danger:hover {
+    background: rgba(231,76,60,0.1);
+  }
+  .hamburger-dropdown hr {
+    border: none;
+    border-top: 1px solid var(--border);
+    margin: 0;
+  }
+
+  /* Main Content */
+  .main {
+    width: 100%;
+    max-width: 800px;
+    padding: 20px;
+    flex: 1;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Start screen */
+  .start-screen {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    gap: 30px;
+    animation: fadeIn 0.6s ease;
+  }
+  .start-screen h2 {
+    font-family: 'Crimson Text', serif;
+    font-size: 1.8em;
+    color: var(--text-primary);
+  }
+  .start-screen p {
+    color: var(--text-secondary);
+    max-width: 500px;
+    text-align: center;
+    line-height: 1.6;
+  }
+  .theme-input {
+    display: flex;
+    gap: 10px;
+    width: 100%;
+    max-width: 500px;
+  }
+  .theme-input input {
+    flex: 1;
+  }
+
+  /* Adventure text area */
+  .adventure-container {
+    display: none;
+    flex-direction: column;
+    gap: 16px;
+    padding-bottom: 200px;
+  }
+  .adventure-container.active {
+    display: flex;
+  }
+
+  .narrative-block {
+    font-family: 'Crimson Text', serif;
+    font-size: 1.2em;
+    line-height: 1.85;
+    color: var(--text-primary);
+    background: var(--bg-card);
+    padding: 24px 28px;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    white-space: pre-wrap;
+    animation: fadeSlideIn 0.3s ease;
+    position: relative;
+    overflow: hidden;
+  }
+  .narrative-block.editing {
+    border-color: var(--accent-gold);
+    box-shadow: 0 0 12px rgba(201,168,76,0.15);
+  }
+  .narrative-block.editing p {
+    outline: none;
+  }
+  .edit-block-btn {
+    position: absolute;
+    bottom: 8px;
+    right: 10px;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+    color: var(--text-dim);
+    font-size: 0.85em;
+    padding: 4px 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    z-index: 10;
+    line-height: 1;
+  }
+  .edit-block-btn:hover {
+    color: var(--accent-gold);
+    border-color: var(--accent-gold);
+    background: rgba(201,168,76,0.1);
+  }
+  .narrative-block.streaming {
+    border-color: var(--accent-gold-dim);
+    box-shadow: 0 0 20px rgba(201,168,76,0.1);
+  }
+  .narrative-block.streaming::after {
+    content: '▍';
+    animation: blink 0.8s infinite;
+    color: var(--accent-gold);
+  }
+
+  /* Per-paragraph image button */
+  .para-img-btn {
+    display: inline-block;
+    background: none;
+    border: 1px solid var(--border);
+    border-radius: 4px;
+    color: var(--text-dim);
+    font-size: 0.7em;
+    padding: 2px 6px;
+    margin-left: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    vertical-align: middle;
+    line-height: 1;
+  }
+  .para-img-btn:hover {
+    color: var(--accent-gold);
+    border-color: var(--accent-gold);
+    background: rgba(201,168,76,0.1);
+  }
+  .para-img-btn:disabled {
+    opacity: 0.3;
+    cursor: not-allowed;
+  }
+  .para-img-btn.btn-delete {
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+    opacity: 0.6;
+  }
+  .para-img-btn.btn-delete:hover {
+    opacity: 1;
+    background: rgba(231,76,60,0.15);
+    color: var(--accent-red);
+    border-color: var(--accent-red);
+  }
+  .para-img-controls {
+    display: inline;
+    margin-left: 4px;
+  }
+
+  .choice-block {
+    padding: 10px 28px;
+    font-style: italic;
+    color: var(--accent-blue);
+    border-left: 3px solid var(--accent-blue);
+    background: rgba(126,184,218,0.05);
+    border-radius: 0 8px 8px 0;
+    font-size: 0.95em;
+    animation: fadeSlideIn 0.3s ease;
+  }
+
+  .image-block {
+    float: right;
+    margin: 0 0 12px 16px;
+    max-width: 400px;
+    animation: fadeSlideIn 0.5s ease;
+  }
+  .image-block img {
+    width: 100%;
+    border-radius: 12px;
+    border: 1px solid var(--border);
+    box-shadow: 0 8px 24px var(--shadow);
+    display: block;
+  }
+
+  /* Image placeholder while generating */
+  .image-placeholder {
+    float: right;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
+    width: 400px;
+    padding: 40px 20px;
+    margin: 0 0 12px 16px;
+    background: var(--bg-card);
+    border: 1px dashed var(--accent-gold-dim);
+    border-radius: 12px;
+    color: var(--text-secondary);
+    font-size: 0.95em;
+    animation: fadeSlideIn 0.3s ease;
+  }
+
+  /* Choices area */
+  .choices-area {
+    display: flex;
+    flex-direction: column;
+    gap: 8px;
+    margin-top: 8px;
+  }
+
+  /* Action input area - fixed at bottom */
+  .action-bar {
+    position: fixed;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    background: linear-gradient(0deg, var(--bg-dark) 80%, transparent 100%);
+    padding: 30px 20px 20px;
+    display: none;
+    justify-content: center;
+    z-index: 100;
+  }
+  .action-bar.active {
+    display: flex;
+  }
+  .action-bar-inner {
+    width: 100%;
+    max-width: 800px;
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+  }
+  .action-input-row {
+    display: flex;
+    gap: 10px;
+  }
+
+  /* Buttons */
+  .btn {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.9em;
+    font-weight: 500;
+    padding: 10px 20px;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    background: var(--bg-card);
+    color: var(--text-primary);
+  }
+  .btn:hover:not(:disabled) {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px var(--shadow);
+  }
+  .btn:disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+  }
+  .btn-primary {
+    background: linear-gradient(135deg, #c9a84c, #a8893a);
+    color: #1a1a2e;
+    border-color: var(--accent-gold);
+    font-weight: 600;
+  }
+  .btn-primary:hover:not(:disabled) {
+    background: linear-gradient(135deg, #d4b65a, #c9a84c);
+  }
+  .btn-choice {
+    text-align: left;
+    background: var(--bg-card-alt);
+    border-color: var(--border);
+    padding: 12px 20px;
+    font-family: 'Crimson Text', serif;
+    font-size: 1.05em;
+    color: var(--text-primary);
+  }
+  .btn-choice:hover:not(:disabled) {
+    border-color: var(--accent-gold);
+    background: rgba(201,168,76,0.1);
+  }
+  .btn-danger {
+    border-color: var(--accent-red);
+    color: var(--accent-red);
+  }
+  .btn-danger:hover:not(:disabled) {
+    background: rgba(231,76,60,0.15);
+  }
+  .btn-icon {
+    padding: 10px 14px;
+    font-size: 1.1em;
+  }
+  .btn-small {
+    padding: 6px 14px;
+    font-size: 0.82em;
+  }
+
+  /* Input */
+  input[type="text"], textarea {
+    font-family: 'Inter', sans-serif;
+    font-size: 0.95em;
+    padding: 10px 16px;
+    background: var(--bg-card);
+    color: var(--text-primary);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  input[type="text"]:focus, textarea:focus {
+    border-color: var(--accent-gold);
+  }
+
+  /* Loading spinner */
+  .spinner {
+    display: inline-block;
+    width: 16px;
+    height: 16px;
+    border: 2px solid var(--text-dim);
+    border-top-color: var(--accent-gold);
+    border-radius: 50%;
+    animation: spin 0.8s linear infinite;
+    margin-right: 8px;
+    vertical-align: middle;
+  }
+
+  /* Modal / history overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,0.8);
+    z-index: 1000;
+    justify-content: center;
+    align-items: flex-start;
+    padding: 40px 20px;
+    overflow-y: auto;
+  }
+  .modal-overlay.active {
+    display: flex;
+  }
+  .modal {
+    background: var(--bg-card);
+    border: 1px solid var(--border);
+    border-radius: 16px;
+    width: 100%;
+    max-width: 800px;
+    padding: 30px;
+    position: relative;
+    animation: fadeSlideIn 0.3s ease;
+  }
+  .modal h2 {
+    font-family: 'Crimson Text', serif;
+    color: var(--accent-gold);
+    margin-bottom: 20px;
+    font-size: 1.5em;
+  }
+  .modal-close {
+    position: absolute;
+    top: 15px;
+    right: 20px;
+    background: none;
+    border: none;
+    color: var(--text-secondary);
+    font-size: 1.5em;
+    cursor: pointer;
+  }
+  .modal-close:hover { color: var(--text-primary); }
+
+  .history-entry {
+    margin-bottom: 16px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid var(--border);
+  }
+  .history-entry:last-child { border-bottom: none; }
+  .history-entry.text-entry {
+    font-family: 'Crimson Text', serif;
+    font-size: 1.1em;
+    line-height: 1.7;
+    white-space: pre-wrap;
+  }
+  .history-entry.choice-entry {
+    color: var(--accent-blue);
+    font-style: italic;
+    border-left: 3px solid var(--accent-blue);
+    padding-left: 16px;
+  }
+  .history-entry img {
+    max-width: 100%;
+    border-radius: 8px;
+  }
+
+  /* Generating indicator */
+  .generating-indicator {
+    display: none;
+    align-items: center;
+    gap: 8px;
+    padding: 8px 0;
+    color: var(--text-secondary);
+    font-size: 0.9em;
+  }
+  .generating-indicator.active {
+    display: flex;
+  }
+
+  /* Animations */
+  @keyframes fadeIn {
+    from { opacity: 0; }
+    to { opacity: 1; }
+  }
+  @keyframes fadeSlideIn {
+    from { opacity: 0; transform: translateY(10px); }
+    to { opacity: 1; transform: translateY(0); }
+  }
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+  @keyframes blink {
+    50% { opacity: 0; }
+  }
+
+  /* Responsive */
+  @media (max-width: 600px) {
+    .header { padding: 10px 14px; }
+    .header h1 { font-size: 1.3em; letter-spacing: 1px; }
+    .narrative-block { padding: 16px 18px; font-size: 1.05em; }
+    .main { padding: 12px; }
+  }
+</style>
+</head>
+<body>
+
+<!-- Header -->
+<div class="header">
+  <h1>⚔️ AI Choose Now!</h1>
+  <div class="header-controls-always" style="display:flex; gap:8px; align-items:center;">
+    <!-- Start-screen settings menu (always visible) -->
+    <div class="hamburger-menu" id="settingsMenu">
+      <button class="hamburger-btn" onclick="toggleSettingsMenu()" title="Settings">⚙️</button>
+      <div class="hamburger-dropdown" id="settingsDropdown">
+        <div style="padding:12px 18px; color:var(--accent-gold); font-weight:600; font-size:0.85em;">Text Model</div>
+        <div style="padding:0 18px 12px; color:var(--text-secondary); font-size:0.82em;" id="currentModelLabel">Loading…</div>
+        <hr>
+        <div id="modelList" style="max-height:300px; overflow-y:auto;"></div>
+      </div>
+    </div>
+    <!-- Adventure-only controls -->
+    <div id="headerControls" style="display:none; gap:8px; align-items:center;">
+      <button class="btn btn-small" onclick="regenerateLast()" id="regenBtn" title="Regenerate last section">🔄</button>
+      <button class="btn btn-small btn-danger" onclick="undoLast()" id="undoBtn" title="Undo last">↩</button>
+      <div class="hamburger-menu" id="hamburgerMenu">
+        <button class="hamburger-btn" onclick="toggleMenu()" title="Menu">☰</button>
+        <div class="hamburger-dropdown" id="hamburgerDropdown">
+          <button onclick="showHistory(); closeMenu()">📜 Full Story</button>
+          <button onclick="downloadAdventure(); closeMenu()">💾 Download</button>
+          <button onclick="showLastPrompt(); closeMenu()">📝 Last Prompt</button>
+          <button onclick="showAbout(); closeMenu()">ℹ️ About</button>
+          <hr>
+          <button class="danger" onclick="confirmNewAdventure(); closeMenu()">🔄 New Adventure</button>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Start Screen -->
+<div class="main">
+  <div class="start-screen" id="startScreen">
+    <h2>Begin Your Adventure</h2>
+    <div style="width:100%; max-width:620px; display:flex; flex-direction:column; gap:16px;">
+      <div>
+        <label style="display:block; color:var(--accent-gold); font-weight:600; margin-bottom:6px;">Scenario Essentials</label>
+        <p style="color:var(--text-secondary); font-size:0.85em; margin-bottom:8px;">Setting, characters, tone, rules — details the narrator should keep in mind throughout.</p>
+        <textarea id="essentialsInput" rows="5" 
+          placeholder="e.g. You are a rogue artificer in a crumbling steampunk city. Magic is forbidden. You carry a clockwork owl companion named Pip. The tone should be dark and suspenseful."
+          style="width:100%; resize:vertical; font-size:0.95em;"></textarea>
+      </div>
+      <div>
+        <label style="display:block; color:var(--accent-gold); font-weight:600; margin-bottom:6px;">Story Starting Text <span style="color:var(--text-dim); font-weight:400; font-size:0.85em;">(optional)</span></label>
+        <p style="color:var(--text-secondary); font-size:0.85em; margin-bottom:8px;">If provided, this becomes the opening passage and the AI will continue from it.</p>
+        <textarea id="startingTextInput" rows="5" 
+          placeholder="e.g. You stand at the gates of the Obsidian Citadel, the wind howling through the shattered battlements above. A faint glow pulses from deep within…"
+          style="width:100%; resize:vertical; font-size:0.95em;"></textarea>
+      </div>
+      <div style="display:flex; gap:10px; align-items:center; justify-content:space-between; flex-wrap:wrap;">
+        <div style="display:flex; gap:8px; align-items:center;">
+          <button class="btn" onclick="savePreset()" title="Save scenario &amp; starting text to disk" style="font-size:0.85em;">💾 Save</button>
+          <button class="btn" onclick="loadPresetPicker()" title="Load a saved preset from disk" style="font-size:0.85em;">📂 Load</button>
+          <input type="file" id="presetFileInput" accept=".json" style="display:none;" onchange="loadPresetFile(event)">
+        </div>
+        <button class="btn btn-primary" onclick="startAdventure()" id="startBtn">⚔️ Begin Adventure</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Adventure Content -->
+  <div class="adventure-container" id="adventureContainer">
+    <div id="storyContent"></div>
+
+    <div class="choices-area" id="choicesArea"></div>
+
+    <div class="generating-indicator" id="generatingIndicator">
+      <span class="spinner"></span>
+      <span id="generatingText">Generating...</span>
+    </div>
+  </div>
+</div>
+
+<!-- Action Bar -->
+<div class="action-bar" id="actionBar">
+  <div class="action-bar-inner">
+    <div class="action-input-row">
+      <input type="text" id="actionInput" placeholder="Type your own action..." style="flex:1;"
+             onkeydown="if(event.key==='Enter')submitCustomAction()">
+      <button class="btn btn-primary" onclick="submitCustomAction()" id="submitActionBtn">⚡ Act</button>
+    </div>
+  </div>
+</div>
+
+<!-- History Modal -->
+<div class="modal-overlay" id="historyModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeHistory()">&times;</button>
+    <h2>📜 Full Story</h2>
+    <div id="historyContent"></div>
+  </div>
+</div>
+
+<!-- Prompt Modal -->
+<div class="modal-overlay" id="promptModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closePromptModal()">&times;</button>
+    <h2>📝 Last Prompt Sent to AI</h2>
+    <pre id="promptContent" style="white-space:pre-wrap; font-family:'Crimson Text',serif; font-size:0.95em; line-height:1.6; color:var(--text-secondary); max-height:70vh; overflow-y:auto;"></pre>
+  </div>
+</div>
+
+<!-- About Modal -->
+<div class="modal-overlay" id="aboutModal">
+  <div class="modal">
+    <button class="modal-close" onclick="closeAboutModal()">&times;</button>
+    <h2>ℹ️ About AI Choose Now!</h2>
+    <div style="font-family:'Crimson Text',serif; font-size:1.05em; line-height:1.7; color:var(--text-secondary);">
+      <p style="margin-bottom:16px;"><strong style="color:var(--accent-gold);">Author:</strong> Edward Hewlett</p>
+      <p style="margin-bottom:16px;"><strong style="color:var(--accent-gold);">AI Development Assistant:</strong> Claude Opus 4.6 (via GitHub Copilot)</p>
+      <p style="margin-bottom:20px;"><strong style="color:var(--accent-gold);">Runtime AI:</strong> Local Ollama models — text generation and image generation run entirely on your machine.</p>
+
+      <hr style="border:none; border-top:1px solid var(--border); margin:20px 0;">
+
+      <h3 style="color:var(--accent-gold); font-size:1.1em; margin-bottom:12px;">Development Process</h3>
+      <p style="margin-bottom:16px;">AI Choose Now! was built through an iterative, conversational development process between the author and Claude Opus 4.6. The entire application — backend, frontend, prompt engineering, and UI/UX — was developed through a series of natural-language prompts describing desired features, which the AI then implemented in code.</p>
+
+      <h3 style="color:var(--accent-gold); font-size:1.1em; margin-bottom:12px;">Key Prompts Used During Development</h3>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">1. Initial App Creation</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Create a local "AI Dungeon" style adventure game using local ollama models, which are already installed: gemma3:4b for text-generation and x/flux2-klein:latest for image generation. The app is to be written in Python and will use Flask for the main interface. The interface should look modern and attractive, presenting the adventure text front-and-centre, with any choices generated by the AI presented as clickable buttons, and with the option to enter text to create one's own choice or words or actions to be incorporated into the text of the adventure. There should also be a button that can be clicked to generate an image based on the last paragraph of text.
+
+The text of the adventure should generally only be two paragraphs in length, with the only exception being any setup needed at the very first prompt at the beginning of the adventure. It should always be written in second-person present tense, addressing the player as "You". Generated text should be streamed to the HTML page, so the user can read the text as it is being generated. Generated text should be stored locally so that the player can also press a button to see the entire adventure, including all choices made, in order, as though it's just one long story. There should also be a "download" adventure which saves the adventure as a single HTML page, including any images that have been generated.
+
+Images should be generated using x/flux2-klein with a maximum resolution of 512 x 512, and should pop into the page when done.
+
+An "Undo" button should also be available, which will remove the last generated text or image from the history.
+
+Each time the user enters an action, all stored text of the adventure up to that point should be sent to the text-generation AI model, with the user's action being the last text sent. If the text is too long for the context window, a summary should be generated and stored and then used instead of the complete adventure text.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">2. Image Resolution & User Experience</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Most of the application is working very well, but the image generation is defaulting to 1024 x 1024 instead of respecting the requested 512 x 512 resolution. This is important because generating full-size images (1024x1024) takes *much* longer than half-size ones. It would also be nice if the text-adventure was still playable while the image was generating, with the completed image popping into place, where requested, once it is done. (The image generating progress circle can stay there as a placeholder until the image pops in.) One minor feature request would be to get rid of the suggested choices from the generated text (and history) when the selection buttons are rendered.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">3. Download & Story Recording</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Image generation is working now. The "Download" button does not download the entire story, though. In the test adventure I just played, only the last few actions and images and sections of generated text were included in the download - the first three sections were missing. Also, instead of the formula "You chose: Attempt to stop..." I would prefer, in the history/download/complete story record "You attempt to stop..." (i.e., "You &lt;action&gt;" instead of "You chose: &lt;action&gt;").</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">4. Image & Paragraph Integration</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Move the "AI Adventure" title to the left of the top frame, so the other buttons can float to the right of it, so that the whole top navigation takes up less vertical space. Eliminate the picture button next to the "Act" button and instead place small picture-frame buttons at the end of each paragraph, which the user can click at any time to generate an in-line picture that represents the text in that paragraph.
+
+Each image generated should be placed so that it floats to the right of the paragraph it is depecting, the words wrapping around it. In order to better accommodate this arrangements, image size should be adjusted to 400 x 400 pixels.
+
+Once a picture has been generated, replace the picture frame icon at the end of a paragraph with a "refresh" icon, which, if clicked will regenerate the picture for that paragraph, replacing the one previously generated from the paragraph text.
+
+Add two buttons after the "refresh" icon, one red "x" for deleting the picture (which will restore the picture frame icon, allowing for no picture to be associated with the paragraph until the picture frame icon is clicked), and, before that, a pencil icon which will prompt the user with a text field so the user can add context to the paragraph text for the regeneration of the paragraph's picture.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">5. Local Network Access, Mobile View, and Scenario Essentials</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Open the server to other devices on the local network.
+
+Put the Full Story, Download, and New options into an expandible "hamburger" menu, and remove the text from the Undo button, with the intent of fitting the AI Adventure heading, undo button, and hamburger menu all on one line in mobile view so as to conserve vertical space.
+
+Change the "Begin Your Adventure" prompt to a larger multi-line text-box, prompting the user for "scenario essentials" which will then be included in each prompt after the system text and before the history_text / user_message.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">6. Prompt Viewing & Text Editing</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Add to the drop-down menu the ability to view the contents of the prompt variable, as it will be helpful to be able to see the entirety of the last prompt text submitted to the AI model.
+
+Place a paper-and-pencil icon in the bottom right-hand corner of the last text-box, which, if clicked, will change to a save icon and allow the user to edit the text in-place. If the text is altered, any history entry stored should also be altered and the three AI-generated choices should disappear, leaving only the "Type your own action..." &lt;Act&gt; box.
+
+Revise the opening screen so that the user is prompted for both scenario info and story starting text, and is provided with a way to save/load these to disk. The story starting text, if provided, should be used as the beginning of the story prompt and should be saved as the first entry in the story history.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">7. UI Refinements & Regeneration</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Let's fine-tune a few things:
+1. Review all prompts and all concatenation to produce prompts to make sure the actual, resultant prompts sent to the story AI are optimized to create an exciting, coherent, vivid, and immersive story experience for the reader that always produces only two paragraphs of text followed by three choices and that always aligns closely with what is specified in the scenario essentials.
+2. Change the icon for adding context to the image regeneration from a pencil to a paintbrush. Also change the icon for editing the text of the story from a pencil to pencil-on-paper (same icon as is next to "last prompt" on the hamburger menu).
+3. Add a "refresh" icon that floats to the left of the "undo" icon on the navbar. This icon should regenerate and replace the last section of the story from the last-specified action.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">8. Model Selection</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Add a hamburger menu to the navbar of the opening page which shows the user what ollama model is currently selected for text-generation and allows the user to select a different model for text-generation from the available models installed on the user's computer, along with any necessary corresponding code that will enable text-generation with the selected model.</pre>
+      </details>
+
+      <details style="margin-bottom:12px;">
+        <summary style="cursor:pointer; color:var(--accent-blue); font-weight:600;">9. Branding & Documentation</summary>
+        <pre style="white-space:pre-wrap; background:var(--bg-dark); padding:12px; border-radius:8px; margin-top:8px; font-family:'Inter',sans-serif; font-size:0.82em; color:var(--text-dim);">Change the name of the app from “AI Adventure” to “AI Choose Now!”, updating app and content as appropriate. Then create a GitHub Markdown README file outlining how to download and install the app on MacOS (and Linux/Windows, if that’s possible), and providing details about the process of developing the app. Finally, add the text of the main prompts used to create the app to an “About” page in the hamburger menu, along with the author (Edward Hewlett) and main AI used for development (Opus 4.6).</pre>
+      </details>
+    </div>
+  </div>
+</div>
+
+<script>
+  // -----------------------------------------------------------------------
+  // State
+  // -----------------------------------------------------------------------
+  let isGenerating = false;
+  let currentChoices = [];
+
+  const storyContent = document.getElementById('storyContent');
+  const choicesArea = document.getElementById('choicesArea');
+  const actionBar = document.getElementById('actionBar');
+  const actionInput = document.getElementById('actionInput');
+  const headerControls = document.getElementById('headerControls');
+  const generatingIndicator = document.getElementById('generatingIndicator');
+  const startScreen = document.getElementById('startScreen');
+  const adventureContainer = document.getElementById('adventureContainer');
+
+  // Load available models on page load
+  loadModels();
+
+  function loadModels() {
+    fetch('/api/models')
+      .then(r => r.json())
+      .then(data => {
+        const list = document.getElementById('modelList');
+        const label = document.getElementById('currentModelLabel');
+        label.textContent = data.current || 'Unknown';
+        list.innerHTML = '';
+        for (const model of data.models) {
+          const btn = document.createElement('button');
+          btn.textContent = model;
+          if (model === data.current) {
+            btn.style.color = 'var(--accent-gold)';
+            btn.style.fontWeight = '600';
+          }
+          btn.onclick = () => selectModel(model);
+          list.appendChild(btn);
+        }
+      })
+      .catch(() => {
+        document.getElementById('currentModelLabel').textContent = 'Could not reach Ollama';
+      });
+  }
+
+  function selectModel(model) {
+    fetch('/api/set_model', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ model }),
+    }).then(r => r.json()).then(data => {
+      if (data.success) {
+        loadModels(); // refresh list to show new selection
+        closeSettingsMenu();
+      }
+    });
+  }
+
+  function toggleSettingsMenu() {
+    const dd = document.getElementById('settingsDropdown');
+    const wasOpen = dd.classList.contains('open');
+    // Close other menus
+    closeMenu();
+    if (!wasOpen) {
+      dd.classList.add('open');
+      loadModels(); // refresh each time it opens
+    } else {
+      dd.classList.remove('open');
+    }
+  }
+
+  function closeSettingsMenu() {
+    document.getElementById('settingsDropdown').classList.remove('open');
+  }
+
+  // -----------------------------------------------------------------------
+  // Start adventure
+  // -----------------------------------------------------------------------
+  function startAdventure() {
+    if (isGenerating) return;
+    const essentials = document.getElementById('essentialsInput').value.trim();
+    const startingText = document.getElementById('startingTextInput').value.trim();
+    startScreen.style.display = 'none';
+    adventureContainer.classList.add('active');
+    actionBar.classList.add('active');
+    headerControls.style.display = 'flex';
+
+    if (startingText) {
+      // Show starting text as the first narrative block immediately
+      const block = document.createElement('div');
+      block.className = 'narrative-block';
+      block.innerHTML = startingText.split(/\n\n+/).map(p => `<p>${p.replace(/\n/g, '<br>')}</p>`).join('');
+      storyContent.appendChild(block);
+      scrollToBottom();
+    }
+
+    streamResponse('/api/start', { theme: essentials, essentials, starting_text: startingText });
+  }
+
+  // -----------------------------------------------------------------------
+  // Save / Load presets
+  // -----------------------------------------------------------------------
+  function savePreset() {
+    const essentials = document.getElementById('essentialsInput').value.trim();
+    const startingText = document.getElementById('startingTextInput').value.trim();
+    if (!essentials && !startingText) {
+      alert('Nothing to save — fill in at least one field first.');
+      return;
+    }
+    const name = prompt('Preset name:', 'my-adventure');
+    if (!name) return;
+    const blob = new Blob([JSON.stringify({ scenario_essentials: essentials, starting_text: startingText }, null, 2)], { type: 'application/json' });
+    const a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = name.replace(/[^a-zA-Z0-9_\-]/g, '_') + '.json';
+    a.click();
+    URL.revokeObjectURL(a.href);
+  }
+
+  function loadPresetPicker() {
+    document.getElementById('presetFileInput').click();
+  }
+
+  function loadPresetFile(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = function(e) {
+      try {
+        const data = JSON.parse(e.target.result);
+        if (data.scenario_essentials != null) document.getElementById('essentialsInput').value = data.scenario_essentials;
+        if (data.starting_text != null) document.getElementById('startingTextInput').value = data.starting_text;
+      } catch (err) {
+        alert('Invalid preset file.');
+      }
+    };
+    reader.readAsText(file);
+    event.target.value = ''; // allow re-selecting the same file
+  }
+
+  // -----------------------------------------------------------------------
+  // Submit action (choice or custom)
+  // -----------------------------------------------------------------------
+  function submitChoice(choiceText) {
+    if (isGenerating) return;
+    addChoiceBlock(choiceText);
+    streamResponse('/api/action', { action: choiceText });
+  }
+
+  function submitCustomAction() {
+    if (isGenerating) return;
+    const action = actionInput.value.trim();
+    if (!action) return;
+    actionInput.value = '';
+    addChoiceBlock(action);
+    streamResponse('/api/action', { action });
+  }
+
+  // -----------------------------------------------------------------------
+  // Streaming response handler
+  // -----------------------------------------------------------------------
+  function streamResponse(url, body) {
+    isGenerating = true;
+    setControlsEnabled(false);
+    showGenerating(true);
+    choicesArea.innerHTML = '';
+    currentChoices = [];
+
+    // Create narrative block for streaming
+    const block = document.createElement('div');
+    block.className = 'narrative-block streaming';
+    storyContent.appendChild(block);
+    scrollToBottom();
+
+    fetch(url, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    }).then(response => {
+      const reader = response.body.getReader();
+      const decoder = new TextDecoder();
+      let fullText = '';
+      let buffer = '';
+
+      function read() {
+        reader.read().then(({ done, value }) => {
+          if (done) {
+            finishStream(block, fullText);
+            return;
+          }
+          buffer += decoder.decode(value, { stream: true });
+          const lines = buffer.split('\n');
+          buffer = lines.pop() || '';
+
+          for (const line of lines) {
+            if (line.startsWith('data: ')) {
+              try {
+                const data = JSON.parse(line.slice(6));
+                if (data.token) {
+                  fullText += data.token;
+                  block.textContent = fullText;
+                  scrollToBottom();
+                }
+                if (data.done) {
+                  finishStream(block, fullText);
+                  return;
+                }
+              } catch (e) { /* ignore parse errors */ }
+            }
+          }
+          read();
+        }).catch(err => {
+          console.error('Stream error:', err);
+          finishStream(block, fullText);
+        });
+      }
+      read();
+    }).catch(err => {
+      console.error('Fetch error:', err);
+      block.textContent = 'Error connecting to AI. Make sure Ollama is running.';
+      block.classList.remove('streaming');
+      isGenerating = false;
+      setControlsEnabled(true);
+      showGenerating(false);
+    });
+  }
+
+  function stripChoiceLines(text) {
+    return text.split('\n').filter(line => !line.trim().match(/^>?\s*\d\.\s+/)).join('\n').trimEnd();
+  }
+
+  function finishStream(block, fullText) {
+    block.classList.remove('streaming');
+    isGenerating = false;
+    setControlsEnabled(true);
+    showGenerating(false);
+    parseAndShowChoices(fullText);
+
+    // Strip choice lines and split into paragraphs with inline image buttons
+    const cleaned = stripChoiceLines(fullText);
+    block.textContent = '';  // clear streaming text
+    block.style.whiteSpace = 'normal';
+
+    const paragraphs = cleaned.split(/\n\n+/).filter(p => p.trim());
+    paragraphs.forEach((para, i) => {
+      const p = document.createElement('p');
+      p.style.margin = (i === 0 ? '0' : '1em 0 0 0');
+      p.style.whiteSpace = 'pre-wrap';
+      p.textContent = para.trim();
+
+      const imgBtn = document.createElement('button');
+      imgBtn.className = 'para-img-btn';
+      imgBtn.title = 'Generate image for this paragraph';
+      imgBtn.textContent = '🖼️';
+      imgBtn.onclick = () => generateImage(para.trim(), imgBtn);
+      p.appendChild(imgBtn);
+
+      block.appendChild(p);
+    });
+
+    scrollToBottom();
+    actionInput.focus();
+
+    // Add edit button to the block
+    addEditButton(block);
+  }
+
+  function addEditButton(block) {
+    // Remove edit buttons from all previous blocks
+    document.querySelectorAll('.edit-block-btn').forEach(b => b.remove());
+
+    const editBtn = document.createElement('button');
+    editBtn.className = 'edit-block-btn';
+    editBtn.title = 'Edit this text';
+    editBtn.textContent = '📝';
+    editBtn.onclick = () => toggleEditBlock(block, editBtn);
+    block.appendChild(editBtn);
+  }
+
+  function toggleEditBlock(block, editBtn) {
+    const isEditing = block.classList.contains('editing');
+
+    if (isEditing) {
+      // Save mode
+      block.classList.remove('editing');
+      const paragraphs = block.querySelectorAll('p');
+      paragraphs.forEach(p => p.contentEditable = 'false');
+      editBtn.textContent = '📝';
+      editBtn.title = 'Edit this text';
+
+      // Gather new text from paragraphs
+      const newParts = [];
+      paragraphs.forEach(p => {
+        // Get text without the image button text
+        const clone = p.cloneNode(true);
+        clone.querySelectorAll('.para-img-btn, .para-img-controls, .image-block, .image-placeholder').forEach(el => el.remove());
+        const t = clone.textContent.trim();
+        if (t) newParts.push(t);
+      });
+      const newText = newParts.join('\n\n');
+
+      // Send update to backend
+      fetch('/api/update_last_text', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text: newText }),
+      }).then(r => r.json()).then(data => {
+        if (data.changed) {
+          // Text was altered — clear AI choices, leave only custom action
+          choicesArea.innerHTML = '';
+          currentChoices = [];
+        }
+      });
+    } else {
+      // Enter edit mode
+      block.classList.add('editing');
+      const paragraphs = block.querySelectorAll('p');
+      paragraphs.forEach(p => p.contentEditable = 'true');
+      editBtn.textContent = '💾';
+      editBtn.title = 'Save changes';
+      // Focus the first paragraph
+      if (paragraphs.length) paragraphs[0].focus();
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Parse choices from text
+  // -----------------------------------------------------------------------
+  function parseAndShowChoices(text) {
+    choicesArea.innerHTML = '';
+    currentChoices = [];
+
+    // Look for numbered choices like "1. ...", "> 1. ...", etc.
+    const lines = text.split('\n');
+    for (const line of lines) {
+      const match = line.trim().match(/^>?\s*(\d)\.\s+(.+)/);
+      if (match) {
+        currentChoices.push(match[2].trim());
+      }
+    }
+
+    for (const choice of currentChoices) {
+      const btn = document.createElement('button');
+      btn.className = 'btn btn-choice';
+      btn.textContent = choice;
+      btn.onclick = () => submitChoice(choice);
+      choicesArea.appendChild(btn);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // UI Blocks
+  // -----------------------------------------------------------------------
+  function formatChoiceAsNarrative(text) {
+    text = text.trim();
+    if (!text) return 'You do nothing.';
+    return 'You ' + text[0].toLowerCase() + text.slice(1);
+  }
+
+  function addChoiceBlock(text) {
+    const block = document.createElement('div');
+    block.className = 'choice-block';
+    block.textContent = formatChoiceAsNarrative(text);
+    storyContent.appendChild(block);
+    choicesArea.innerHTML = '';
+    scrollToBottom();
+  }
+
+  // -----------------------------------------------------------------------
+  // Image generation (async — doesn't block gameplay)
+  // -----------------------------------------------------------------------
+  function generateImage(paraText, btnEl, extraContext) {
+    if (!paraText) return;
+    btnEl.disabled = true;
+    btnEl.textContent = '⏳';
+
+    // Hide sibling edit/delete buttons during generation
+    const controls = btnEl.parentElement.classList.contains('para-img-controls') ? btnEl.parentElement : null;
+    if (controls) {
+      controls.querySelectorAll('.para-img-btn').forEach(b => b.disabled = true);
+    }
+
+    const paraEl = btnEl.closest('p');
+
+    // If regenerating, remove the existing image block inside this paragraph
+    const existingImg = paraEl.querySelector('.image-block');
+    if (existingImg) existingImg.remove();
+
+    // Build prompt text, appending user context if provided
+    let promptText = paraText;
+    let extraContextStr = extraContext || '';
+
+    // Insert a floating placeholder inside the paragraph
+    const placeholder = document.createElement('div');
+    placeholder.className = 'image-placeholder';
+    placeholder.innerHTML = '<span class="spinner"></span> Generating image...';
+    paraEl.insertBefore(placeholder, paraEl.firstChild);
+    scrollToBottom();
+
+    fetch('/api/generate_image', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ text: promptText, context: extraContextStr }),
+    }).then(r => r.json()).then(data => {
+      if (data.job_id) {
+        pollImageJob(data.job_id, placeholder, btnEl, paraText);
+      } else if (data.error) {
+        placeholder.textContent = 'Image error: ' + data.error;
+        btnEl.disabled = false;
+        btnEl.textContent = '🖼️';
+        if (controls) controls.querySelectorAll('.para-img-btn').forEach(b => b.disabled = false);
+      }
+    }).catch(err => {
+      placeholder.textContent = 'Image generation failed: ' + err;
+      btnEl.disabled = false;
+      btnEl.textContent = '🖼️';
+      if (controls) controls.querySelectorAll('.para-img-btn').forEach(b => b.disabled = false);
+    });
+  }
+
+  function pollImageJob(jobId, placeholder, btnEl, paraText) {
+    fetch('/api/image_status/' + jobId)
+      .then(r => r.json())
+      .then(data => {
+        if (data.status === 'done' && data.image) {
+          // Replace placeholder with floating image
+          const imgBlock = document.createElement('div');
+          imgBlock.className = 'image-block';
+          const img = document.createElement('img');
+          img.src = 'data:image/png;base64,' + data.image;
+          img.alt = 'Adventure illustration';
+          imgBlock.appendChild(img);
+          placeholder.replaceWith(imgBlock);
+          // Build control group: refresh, pencil (edit), red X (delete)
+          showImageControls(btnEl, paraText);
+          scrollToBottom();
+        } else if (data.status === 'error') {
+          placeholder.textContent = 'Image error: ' + (data.error || 'Unknown error');
+          btnEl.disabled = false;
+          btnEl.textContent = '🖼️';
+        } else {
+          // Still pending — poll again in 2 seconds
+          setTimeout(() => pollImageJob(jobId, placeholder, btnEl, paraText), 2000);
+        }
+      })
+      .catch(err => {
+        placeholder.textContent = 'Polling failed: ' + err;
+        btnEl.disabled = false;
+        btnEl.textContent = '🖼️';
+      });
+  }
+
+  function showImageControls(btnEl, paraText) {
+    // Remove any existing controls wrapper
+    const existingControls = btnEl.parentElement.classList.contains('para-img-controls')
+      ? btnEl.parentElement : null;
+
+    const paraEl = btnEl.closest('p');
+
+    // Create controls wrapper
+    const controls = document.createElement('span');
+    controls.className = 'para-img-controls';
+
+    // Refresh button
+    const refreshBtn = document.createElement('button');
+    refreshBtn.className = 'para-img-btn';
+    refreshBtn.textContent = '🔄';
+    refreshBtn.title = 'Regenerate image';
+    refreshBtn.onclick = () => generateImage(paraText, refreshBtn);
+    controls.appendChild(refreshBtn);
+
+    // Paintbrush / edit context button
+    const editBtn = document.createElement('button');
+    editBtn.className = 'para-img-btn';
+    editBtn.textContent = '🖌️';
+    editBtn.title = 'Add context and regenerate image';
+    editBtn.onclick = () => {
+      const extra = prompt('Add context for the image (e.g. style, details, mood):');
+      if (extra !== null && extra.trim()) {
+        generateImage(paraText, refreshBtn, extra.trim());
+      }
+    };
+    controls.appendChild(editBtn);
+
+    // Delete button (red X)
+    const delBtn = document.createElement('button');
+    delBtn.className = 'para-img-btn btn-delete';
+    delBtn.textContent = '✖';
+    delBtn.title = 'Remove image';
+    delBtn.onclick = () => {
+      // Remove the image block from this paragraph
+      const imgBlock = paraEl.querySelector('.image-block');
+      if (imgBlock) imgBlock.remove();
+      // Replace controls with original picture-frame button
+      const originalBtn = document.createElement('button');
+      originalBtn.className = 'para-img-btn';
+      originalBtn.title = 'Generate image for this paragraph';
+      originalBtn.textContent = '🖼️';
+      originalBtn.onclick = () => generateImage(paraText, originalBtn);
+      controls.replaceWith(originalBtn);
+    };
+    controls.appendChild(delBtn);
+
+    // Replace the old button (or controls wrapper) with the new controls
+    if (existingControls) {
+      existingControls.replaceWith(controls);
+    } else {
+      btnEl.replaceWith(controls);
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Undo
+  // -----------------------------------------------------------------------
+  function regenerateLast() {
+    if (isGenerating) return;
+    // Remove last narrative block from DOM
+    const blocks = storyContent.querySelectorAll('.narrative-block');
+    if (blocks.length === 0) return;
+    const lastBlock = blocks[blocks.length - 1];
+    lastBlock.remove();
+    choicesArea.innerHTML = '';
+    currentChoices = [];
+    // Stream regenerated text from backend
+    streamResponse('/api/regenerate', {});
+  }
+
+  function undoLast() {
+    if (isGenerating) return;
+    fetch('/api/undo', { method: 'POST' })
+      .then(r => r.json())
+      .then(data => {
+        if (data.success) {
+          // Remove last element(s) from DOM
+          const lastChild = storyContent.lastElementChild;
+          if (lastChild) storyContent.removeChild(lastChild);
+          // If we also removed a choice, remove that DOM element too
+          if (data.removed_type === 'text') {
+            const prev = storyContent.lastElementChild;
+            if (prev && prev.classList.contains('choice-block')) {
+              storyContent.removeChild(prev);
+            }
+          }
+          // Re-parse choices from last remaining text block
+          recheckChoices();
+          scrollToBottom();
+        }
+      });
+  }
+
+  function recheckChoices() {
+    const blocks = storyContent.querySelectorAll('.narrative-block');
+    if (blocks.length > 0) {
+      const lastBlock = blocks[blocks.length - 1];
+      parseAndShowChoices(lastBlock.textContent);
+    } else {
+      choicesArea.innerHTML = '';
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // History modal
+  // -----------------------------------------------------------------------
+  function showHistory() {
+    fetch('/api/history')
+      .then(r => r.json())
+      .then(data => {
+        const content = document.getElementById('historyContent');
+        content.innerHTML = '';
+        for (const entry of data.entries) {
+          const div = document.createElement('div');
+          div.className = 'history-entry';
+          if (entry.type === 'text') {
+            div.classList.add('text-entry');
+            div.textContent = stripChoiceLines(entry.content);
+          } else if (entry.type === 'choice') {
+            div.classList.add('choice-entry');
+            div.textContent = formatChoiceAsNarrative(entry.content);
+          } else if (entry.type === 'image') {
+            const img = document.createElement('img');
+            img.src = 'data:image/png;base64,' + entry.content;
+            img.alt = 'Adventure illustration';
+            div.appendChild(img);
+          }
+          content.appendChild(div);
+        }
+        document.getElementById('historyModal').classList.add('active');
+      });
+  }
+
+  function closeHistory() {
+    document.getElementById('historyModal').classList.remove('active');
+  }
+
+  // -----------------------------------------------------------------------
+  // View last prompt
+  // -----------------------------------------------------------------------
+  function showLastPrompt() {
+    fetch('/api/last_prompt')
+      .then(r => r.json())
+      .then(data => {
+        document.getElementById('promptContent').textContent = data.prompt || '(No prompt yet — start an adventure first)';
+        document.getElementById('promptModal').classList.add('active');
+      });
+  }
+
+  function closePromptModal() {
+    document.getElementById('promptModal').classList.remove('active');
+  }
+
+  function showAbout() {
+    document.getElementById('aboutModal').classList.add('active');
+  }
+
+  function closeAboutModal() {
+    document.getElementById('aboutModal').classList.remove('active');
+  }
+
+  // -----------------------------------------------------------------------
+  // Download
+  // -----------------------------------------------------------------------
+  function downloadAdventure() {
+    window.location.href = '/api/download';
+  }
+
+  // -----------------------------------------------------------------------
+  // New adventure
+  // -----------------------------------------------------------------------
+  function confirmNewAdventure() {
+    if (confirm('Start a new adventure? Current progress will be lost.')) {
+      storyContent.innerHTML = '';
+      choicesArea.innerHTML = '';
+      adventureContainer.classList.remove('active');
+      actionBar.classList.remove('active');
+      headerControls.style.display = 'none';
+      startScreen.style.display = 'flex';
+      document.getElementById('essentialsInput').value = '';
+      document.getElementById('startingTextInput').value = '';
+      document.getElementById('essentialsInput').focus();
+    }
+  }
+
+  // -----------------------------------------------------------------------
+  // Utilities
+  // -----------------------------------------------------------------------
+  function scrollToBottom() {
+    window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' });
+  }
+
+  function setControlsEnabled(enabled) {
+    document.getElementById('submitActionBtn').disabled = !enabled;
+    document.getElementById('undoBtn').disabled = !enabled;
+    document.getElementById('regenBtn').disabled = !enabled;
+    actionInput.disabled = !enabled;
+    document.querySelectorAll('.btn-choice').forEach(b => b.disabled = !enabled);
+  }
+
+  function showGenerating(show, text) {
+    generatingIndicator.classList.toggle('active', show);
+    if (text) document.getElementById('generatingText').textContent = text;
+    else document.getElementById('generatingText').textContent = 'Generating...';
+  }
+
+  // Close modal on overlay click
+  document.getElementById('historyModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('historyModal')) closeHistory();
+  });
+  document.getElementById('promptModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('promptModal')) closePromptModal();
+  });
+  document.getElementById('aboutModal').addEventListener('click', (e) => {
+    if (e.target === document.getElementById('aboutModal')) closeAboutModal();
+  });
+
+  // Esc to close modal / menu
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape') { closeHistory(); closePromptModal(); closeAboutModal(); closeMenu(); closeSettingsMenu(); }
+  });
+
+  // Hamburger menu
+  function toggleMenu() {
+    document.getElementById('hamburgerDropdown').classList.toggle('open');
+  }
+  function closeMenu() {
+    document.getElementById('hamburgerDropdown').classList.remove('open');
+  }
+  // Close menu when clicking outside
+  document.addEventListener('click', (e) => {
+    const menu = document.getElementById('hamburgerMenu');
+    if (menu && !menu.contains(e.target)) closeMenu();
+    const settings = document.getElementById('settingsMenu');
+    if (settings && !settings.contains(e.target)) closeSettingsMenu();
+  });
+</script>
+</body>
+</html>
