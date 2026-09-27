@@ -1,0 +1,16 @@
+#!/usr/bin/env bash
+#MISE description="Sync the Python environment from uv.lock"
+set -euo pipefail
+
+uv sync --locked
+
+ollama_url="${OLLAMA_URL:-http://127.0.0.1:11434}"
+ollama_url="${ollama_url%/}"
+if ! curl --silent --show-error --fail --max-time 5 \
+  --output /dev/null "$ollama_url/api/tags"; then
+  printf 'Ollama API is not reachable at %s\n' "$ollama_url" >&2
+  printf 'Set OLLAMA_URL to an API address reachable from WSL and retry.\n' >&2
+  exit 1
+fi
+
+printf 'Ollama API is reachable at %s\n' "$ollama_url"

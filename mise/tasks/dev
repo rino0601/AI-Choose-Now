@@ -1,0 +1,5 @@
+#!/usr/bin/env bash
+#MISE description="Run the app with its locked Python dependencies"
+set -euo pipefail
+
+uv run --locked python app.py

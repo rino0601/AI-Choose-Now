@@ -5,6 +5,7 @@ AI Choose Now! — an interactive choose-your-own-adventure game using local Oll
 """
 
 import json
+import os
 import time
 import re
 import base64
@@ -18,7 +19,7 @@ app = Flask(__name__)
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-OLLAMA_URL = "http://localhost:11434"
+OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
 TEXT_MODEL = "gemma3:4b"  # default; can be changed at runtime via /api/set_model
 IMAGE_MODEL = "x/flux2-klein:latest"
 MAX_CONTEXT_CHARS = 10000  # rough char budget before we summarise

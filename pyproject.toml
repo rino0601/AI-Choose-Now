@@ -1,0 +1,12 @@
+[project]
+name = "ai-choose-now"
+version = "0.1.0"
+description = "An interactive choose-your-own-adventure game powered by local AI models via Ollama."
+requires-python = ">=3.10"
+dependencies = [
+    "flask>=3.0",
+    "requests>=2.31",
+]
+
+[tool.uv]
+package = false
