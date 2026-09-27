@@ -107,7 +107,11 @@ def build_context_prompt(user_action: str = "", is_start: bool = False, has_star
     """Build the full prompt to send to the text model, including history."""
     system = (
         "You are a masterful narrator of an interactive text adventure game. "
-        "Always write in second-person present tense (\"You\"). "
+        "At the beginning of an adventure, determine its language from the player's scenario essentials, starting text, or theme. "
+        "Write the entire adventure in that language and keep it consistent in every later response, including all three choices. "
+        "For example, when the player's input is Korean, write both the narrative and choices in natural Korean. "
+        "Do not switch to English because these instructions or internal context labels are in English. "
+        "Use a natural second-person perspective in the chosen language; do not force English wording such as \"You\" into another language. "
         "Your prose must be vivid, atmospheric, and deeply immersive — use sensory details (sight, sound, smell, touch), "
         "evocative language, and dramatic tension to draw the reader into the world. "
         "Vary sentence length and structure; build suspense, wonder, or dread as the scene demands. "
@@ -206,7 +210,8 @@ def generate_summary(text: str) -> str:
         "Summarise the following adventure story into a concise paragraph that preserves "
         "all key plot points, character details, items obtained, relationships, and the current situation. "
         "Keep the tone and atmosphere of the original. "
-        "Write in second-person present tense.\n\n"
+        "Write the summary in the same language as the story, and keep that language for the rest of the adventure. "
+        "Use a natural second-person perspective in that language.\n\n"
         f"{text}"
     )
     resp = requests.post(
