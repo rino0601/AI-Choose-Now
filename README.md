@@ -24,7 +24,7 @@ An interactive choose-your-own-adventure game powered by local AI models via [Ol
 
 - **Python 3.10+** (tested with 3.13)
 - **Ollama** with at least one text generation model installed and an image generation model for illustrations; tested with `gemma3:4b` for text and `x/flux2-klein:latest` for images
-- **Flask** and **requests** Python packages
+- [**uv**](https://docs.astral.sh/uv/getting-started/installation/) for Python dependency and environment management
 
 ## Installation
 
@@ -60,7 +60,7 @@ An interactive choose-your-own-adventure game powered by local AI models via [Ol
 5. **Install Python dependencies:**
 
    ```bash
-   pip3 install -r requirements.txt
+   uv sync
    ```
 
 6. **Start Ollama** (if not already running):
@@ -72,30 +72,29 @@ An interactive choose-your-own-adventure game powered by local AI models via [Ol
 7. **Run the app:**
 
    ```bash
-   python3 app.py
+   uv run python app.py
    ```
 
 8. **Open in your browser:** [http://localhost:5050](http://localhost:5050)
 
 ### Linux
 
-The steps are identical to macOS. Install Ollama with:
+Install uv and follow the same steps as macOS. Install Ollama with:
 
 ```bash
 curl -fsSL https://ollama.com/install.sh | sh
 ```
 
-Then follow steps 2–8 above. On some distributions you may need `python3` and `pip3` explicitly.
+Then follow steps 2–8 above.
 
 ### Windows
 
 1. **Install Ollama** from [ollama.com](https://ollama.com) (Windows installer available).
 2. **Install Python 3.10+** from [python.org](https://www.python.org/downloads/).
-3. Open a terminal (PowerShell or Command Prompt) and follow steps 2–8 above, substituting:
+3. Install uv, then open a terminal (PowerShell or Command Prompt) and follow steps 2–8 above, substituting:
    ```
-   python app.py
+   uv run python app.py
    ```
-   for `python3 app.py` if needed.
 
 ## Configuration
 
@@ -112,10 +111,12 @@ Other configurable values:
 
 | Variable | Default | Description |
 |---|---|---|
-| `OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API endpoint |
 | `MAX_CONTEXT_CHARS` | `10000` | Character budget before history is summarised |
 | `IMAGE_WIDTH` | `400` | Generated image width in pixels |
 | `IMAGE_HEIGHT` | `400` | Generated image height in pixels |
+
+Set `OLLAMA_URL` in the environment to use an Ollama API address other than `http://127.0.0.1:11434`. In WSL, use an address reachable from the Linux environment.
 
 ## Usage
 
