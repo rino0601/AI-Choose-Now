@@ -6,20 +6,21 @@ AI Choose Now! — an interactive choose-your-own-adventure game using local Oll
 
 import json
 import os
-import time
 import re
-import base64
 import uuid
 import threading
-import requests
+from openai import OpenAI
+from openai import OpenAIError
 from flask import Flask, render_template, request, jsonify, Response, stream_with_context
+from ollama_client import OLLAMA_URL, ollama_client
 
 app = Flask(__name__)
 
 # ---------------------------------------------------------------------------
 # Configuration
 # ---------------------------------------------------------------------------
-OLLAMA_URL = os.environ.get("OLLAMA_URL", "http://127.0.0.1:11434").rstrip("/")
+TEXT_API_BASE_URL = os.environ.get("TEXT_API_BASE_URL", f"{OLLAMA_URL}/v1").rstrip("/")
+TEXT_API_KEY = os.environ.get("TEXT_API_KEY", "ollama")
 TEXT_MODEL = "gemma3:4b"  # default; can be changed at runtime via /api/set_model
 IMAGE_MODEL = "x/flux2-klein:latest"
 MAX_CONTEXT_CHARS = 10000  # rough char budget before we summarise
@@ -30,6 +31,13 @@ IMAGE_HEIGHT = 400
 runtime_config = {
     "text_model": TEXT_MODEL,
 }
+
+text_client = OpenAI(
+    base_url=TEXT_API_BASE_URL,
+    api_key=TEXT_API_KEY,
+    timeout=300,
+    max_retries=0,
+)
 
 # ---------------------------------------------------------------------------
 # In-memory adventure state (single-player, single-session)
@@ -103,8 +111,16 @@ def strip_choice_lines(text: str) -> str:
 # Helpers
 # ---------------------------------------------------------------------------
 
-def build_context_prompt(user_action: str = "", is_start: bool = False, has_starting_text: bool = False) -> str:
-    """Build the full prompt to send to the text model, including history."""
+def append_chat_message(messages: list[dict], role: str, content: str):
+    """Merge adjacent messages with the same role for provider compatibility."""
+    if messages and messages[-1]["role"] == role:
+        messages[-1]["content"] += "\n\n" + content
+    else:
+        messages.append({"role": role, "content": content})
+
+
+def build_context_messages(user_action: str = "", is_start: bool = False, has_starting_text: bool = False) -> list[dict]:
+    """Build role-based chat messages for text generation, including history."""
     system = (
         "You are a masterful narrator of an interactive text adventure game. "
         "At the beginning of an adventure, determine its language from the player's scenario essentials, starting text, or theme. "
@@ -127,18 +143,18 @@ def build_context_prompt(user_action: str = "", is_start: bool = False, has_star
         "Output only the two narrative paragraphs followed by the three choices — nothing else."
     )
 
-    # Gather history text — use natural separators the LLM won't echo
-    history_parts = []
+    # Keep narrative and player actions in separate chat roles.
+    history_messages = []
     if adventure_state["summary"]:
-        history_parts.append(f"Previously in the adventure: {adventure_state['summary']}")
+        append_chat_message(history_messages, "assistant", f"Previously in the adventure: {adventure_state['summary']}")
 
     for entry in adventure_state["entries"]:
         if entry["type"] == "text":
-            history_parts.append(strip_choice_lines(entry["content"]))
+            append_chat_message(history_messages, "assistant", strip_choice_lines(entry["content"]))
         elif entry["type"] == "choice":
-            history_parts.append(f"> You {entry['content'][0].lower()}{entry['content'][1:]}")
+            append_chat_message(history_messages, "user", f"Player action: {entry['content']}")
 
-    history_text = "\n\n".join(history_parts)
+    history_text = "\n\n".join(message["content"] for message in history_messages)
 
     # Check if we need to summarise
     total_len = len(system) + len(history_text) + len(user_action)
@@ -149,13 +165,14 @@ def build_context_prompt(user_action: str = "", is_start: bool = False, has_star
         recent = adventure_state["entries"][-2:]
         adventure_state["entries"] = recent
         # Rebuild
-        history_parts = [f"Previously in the adventure: {adventure_state['summary']}"]
+        history_messages = []
+        append_chat_message(history_messages, "assistant", f"Previously in the adventure: {adventure_state['summary']}")
         for entry in recent:
             if entry["type"] == "text":
-                history_parts.append(strip_choice_lines(entry["content"]))
+                append_chat_message(history_messages, "assistant", strip_choice_lines(entry["content"]))
             elif entry["type"] == "choice":
-                history_parts.append(f"> You {entry['content'][0].lower()}{entry['content'][1:]}")
-        history_text = "\n\n".join(history_parts)
+                append_chat_message(history_messages, "user", f"Player action: {entry['content']}")
+        history_text = "\n\n".join(message["content"] for message in history_messages)
 
     if is_start:
         if has_starting_text:
@@ -187,59 +204,74 @@ def build_context_prompt(user_action: str = "", is_start: bool = False, has_star
         )
 
 
-    # Insert scenario essentials right after the system text so they are always prominent
+    # Keep the narrator rules and scenario essentials in the system role.
     essentials = adventure_state.get("scenario_essentials", "").strip()
-    parts = [system]
+    system_parts = [system]
     if essentials:
-        parts.append(
+        system_parts.append(
             f"IMPORTANT — The following scenario essentials define this adventure's world and must be "
             f"respected at all times. Every piece of narrative you write should align with and reinforce "
             f"these details:\n{essentials}"
         )
-    if history_text:
-        parts.append(history_text)
-    parts.append(user_message)
-    prompt = "\n\n".join(parts)
+    messages = [{"role": "system", "content": "\n\n".join(system_parts)}]
+    messages.extend(history_messages)
+    messages.append({"role": "user", "content": user_message})
+    return messages
 
-    return prompt
+
+def format_messages_for_inspection(messages: list[dict]) -> str:
+    """Return a readable representation for the existing Last Prompt view."""
+    return "\n\n".join(f"[{message['role'].upper()}]\n{message['content']}" for message in messages)
 
 
 def generate_summary(text: str) -> str:
     """Ask the LLM to compress the adventure so far into a concise summary."""
-    prompt = (
+    instructions = (
         "Summarise the following adventure story into a concise paragraph that preserves "
         "all key plot points, character details, items obtained, relationships, and the current situation. "
         "Keep the tone and atmosphere of the original. "
         "Write the summary in the same language as the story, and keep that language for the rest of the adventure. "
         "Use a natural second-person perspective in that language.\n\n"
-        f"{text}"
     )
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": runtime_config["text_model"], "prompt": prompt, "stream": False},
+    resp = text_client.chat.completions.create(
+        model=runtime_config["text_model"],
+        messages=[
+            {"role": "system", "content": instructions},
+            {"role": "user", "content": text},
+        ],
         timeout=120,
     )
-    resp.raise_for_status()
-    return resp.json().get("response", "")
+    return resp.choices[0].message.content or ""
 
 
-def stream_text_from_ollama(prompt: str):
-    """Generator that streams tokens from Ollama."""
-    resp = requests.post(
-        f"{OLLAMA_URL}/api/generate",
-        json={"model": runtime_config["text_model"], "prompt": prompt, "stream": True},
+def stream_text(messages: list[dict]):
+    """Stream text deltas from an OpenAI-compatible chat completion."""
+    with text_client.chat.completions.create(
+        model=runtime_config["text_model"],
+        messages=messages,
         stream=True,
         timeout=300,
-    )
-    resp.raise_for_status()
-    for line in resp.iter_lines():
-        if line:
-            data = json.loads(line)
-            token = data.get("response", "")
+    ) as stream:
+        for chunk in stream:
+            if not chunk.choices:
+                continue
+            token = chunk.choices[0].delta.content
             if token:
                 yield token
-            if data.get("done"):
-                break
+
+
+def stream_adventure(messages: list[dict]):
+    """Translate SDK chunks and failures into the browser's SSE protocol."""
+    try:
+        full_text = []
+        for token in stream_text(messages):
+            full_text.append(token)
+            yield f"data: {json.dumps({'token': token})}\n\n"
+        complete = "".join(full_text)
+        add_entry({"type": "text", "content": complete})
+        yield f"data: {json.dumps({'done': True})}\n\n"
+    except Exception as exc:
+        yield f"data: {json.dumps({'error': str(exc) or 'Text generation failed'})}\n\n"
 
 
 # ---------------------------------------------------------------------------
@@ -255,9 +287,7 @@ def index():
 def list_models():
     """Return available Ollama models and the currently selected text model."""
     try:
-        resp = requests.get(f"{OLLAMA_URL}/api/tags", timeout=10)
-        resp.raise_for_status()
-        models = [m["name"] for m in resp.json().get("models", [])]
+        models = ollama_client.list_models()
     except Exception:
         models = []
     return jsonify({"models": models, "current": runtime_config["text_model"]})
@@ -288,19 +318,12 @@ def start_adventure():
     if starting_text:
         add_entry({"type": "text", "content": starting_text})
 
-    prompt = build_context_prompt(user_action=theme, is_start=True, has_starting_text=bool(starting_text))
-    adventure_state["last_prompt"] = prompt
-
-    def generate():
-        full_text = []
-        for token in stream_text_from_ollama(prompt):
-            full_text.append(token)
-            yield f"data: {json.dumps({'token': token})}\n\n"
-        complete = "".join(full_text)
-        add_entry({"type": "text", "content": complete})
-        yield f"data: {json.dumps({'done': True})}\n\n"
-
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+    try:
+        messages = build_context_messages(user_action=theme, is_start=True, has_starting_text=bool(starting_text))
+    except OpenAIError as exc:
+        return jsonify({"error": str(exc) or "Text generation failed"}), 502
+    adventure_state["last_prompt"] = format_messages_for_inspection(messages)
+    return Response(stream_with_context(stream_adventure(messages)), mimetype="text/event-stream")
 
 
 @app.route("/api/action", methods=["POST"])
@@ -312,39 +335,19 @@ def player_action():
 
     # Record the choice
     add_entry({"type": "choice", "content": action})
-    prompt = build_context_prompt(user_action=action)
-    adventure_state["last_prompt"] = prompt
-
-    def generate():
-        full_text = []
-        for token in stream_text_from_ollama(prompt):
-            full_text.append(token)
-            yield f"data: {json.dumps({'token': token})}\n\n"
-        complete = "".join(full_text)
-        add_entry({"type": "text", "content": complete})
-        yield f"data: {json.dumps({'done': True})}\n\n"
-
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+    try:
+        messages = build_context_messages(user_action=action)
+    except OpenAIError as exc:
+        pop_entry()
+        return jsonify({"error": str(exc) or "Text generation failed"}), 502
+    adventure_state["last_prompt"] = format_messages_for_inspection(messages)
+    return Response(stream_with_context(stream_adventure(messages)), mimetype="text/event-stream")
 
 
 def _generate_image_worker(job_id: str, image_prompt: str):
     """Background worker that generates an image and stores the result."""
     try:
-        resp = requests.post(
-            f"{OLLAMA_URL}/api/generate",
-            json={
-                "model": IMAGE_MODEL,
-                "prompt": image_prompt,
-                "stream": False,
-                "width": IMAGE_WIDTH,
-                "height": IMAGE_HEIGHT,
-            },
-            timeout=600,
-        )
-        resp.raise_for_status()
-        result = resp.json()
-
-        img_data = result.get("image", "") or result.get("response", "")
+        img_data = ollama_client.generate_image(IMAGE_MODEL, image_prompt, IMAGE_WIDTH, IMAGE_HEIGHT)
 
         if img_data:
             add_entry({"type": "image", "content": img_data})
@@ -431,19 +434,12 @@ def regenerate_last():
 
     is_start = not any(e["type"] == "choice" for e in adventure_state["entries"])
     has_starting = is_start and any(e["type"] == "text" for e in adventure_state["entries"])
-    prompt = build_context_prompt(user_action=last_action, is_start=is_start, has_starting_text=has_starting)
-    adventure_state["last_prompt"] = prompt
-
-    def generate():
-        full_text = []
-        for token in stream_text_from_ollama(prompt):
-            full_text.append(token)
-            yield f"data: {json.dumps({'token': token})}\n\n"
-        complete = "".join(full_text)
-        add_entry({"type": "text", "content": complete})
-        yield f"data: {json.dumps({'done': True})}\n\n"
-
-    return Response(stream_with_context(generate()), mimetype="text/event-stream")
+    try:
+        messages = build_context_messages(user_action=last_action, is_start=is_start, has_starting_text=has_starting)
+    except OpenAIError as exc:
+        return jsonify({"error": str(exc) or "Text generation failed"}), 502
+    adventure_state["last_prompt"] = format_messages_for_inspection(messages)
+    return Response(stream_with_context(stream_adventure(messages)), mimetype="text/event-stream")
 
 
 @app.route("/api/update_last_text", methods=["POST"])

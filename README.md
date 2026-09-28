@@ -1,6 +1,6 @@
 # ⚔️ AI Choose Now!
 
-An interactive choose-your-own-adventure game powered by local AI models via [Ollama](https://ollama.com). All text and image generation runs entirely on your machine — no cloud APIs, no subscriptions, no data leaving your computer.
+An interactive choose-your-own-adventure game powered by local AI models via [Ollama](https://ollama.com) by default. Text generation uses the OpenAI Python SDK with Ollama's OpenAI-compatible API; compatible providers can also be configured. Image generation continues to use Ollama's native API.
 
 ## Features
 
@@ -111,12 +111,14 @@ Other configurable values:
 
 | Variable | Default | Description |
 |---|---|---|
-| `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API endpoint |
+| `OLLAMA_URL` | `http://127.0.0.1:11434` | Ollama API endpoint, used for image generation and model discovery; also provides the default text API URL |
+| `TEXT_API_BASE_URL` | `<OLLAMA_URL>/v1` | OpenAI-compatible chat completions endpoint for text generation |
+| `TEXT_API_KEY` | `ollama` | API key for the configured text provider; Ollama ignores this placeholder |
 | `MAX_CONTEXT_CHARS` | `10000` | Character budget before history is summarised |
 | `IMAGE_WIDTH` | `400` | Generated image width in pixels |
 | `IMAGE_HEIGHT` | `400` | Generated image height in pixels |
 
-Set `OLLAMA_URL` in the environment to use an Ollama API address other than `http://127.0.0.1:11434`. In WSL, use an address reachable from the Linux environment.
+Set `OLLAMA_URL` in the environment to use an Ollama server root other than `http://127.0.0.1:11434`; leave off `/v1` because the app appends it for text generation. In WSL, use an address reachable from the Linux environment. To use another OpenAI-compatible text provider, set both `TEXT_API_BASE_URL` and `TEXT_API_KEY`; these settings affect text generation only. Model discovery and image generation still use Ollama. Compatible providers may support only part of the OpenAI chat completions API, so model and parameter support depends on the provider.
 
 ## Usage
 
