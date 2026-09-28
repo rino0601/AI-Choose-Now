@@ -5,7 +5,8 @@ description = "An interactive choose-your-own-adventure game powered by local AI
 requires-python = ">=3.10"
 dependencies = [
     "flask>=3.0",
-    "requests>=2.31",
+    "httpx2>=2.0",
+    "openai>=1.0",
 ]
 
 [tool.uv]

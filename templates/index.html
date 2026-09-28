@@ -914,6 +914,11 @@ Revise the opening screen so that the user is prompted for both scenario info an
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(body),
     }).then(response => {
+      if (!response.ok) {
+        return response.json().then(data => {
+          throw new Error(data.error || 'Text generation failed');
+        });
+      }
       const reader = response.body.getReader();
       const decoder = new TextDecoder();
       let fullText = '';
@@ -938,6 +943,11 @@ Revise the opening screen so that the user is prompted for both scenario info an
                   block.textContent = fullText;
                   scrollToBottom();
                 }
+                if (data.error) {
+                  reader.cancel();
+                  failStream(block, data.error);
+                  return;
+                }
                 if (data.done) {
                   finishStream(block, fullText);
                   return;
@@ -947,19 +957,21 @@ Revise the opening screen so that the user is prompted for both scenario info an
           }
           read();
         }).catch(err => {
-          console.error('Stream error:', err);
-          finishStream(block, fullText);
+          failStream(block, err.message || 'Text generation failed');
         });
       }
       read();
     }).catch(err => {
-      console.error('Fetch error:', err);
-      block.textContent = 'Error connecting to AI. Make sure Ollama is running.';
-      block.classList.remove('streaming');
-      isGenerating = false;
-      setControlsEnabled(true);
-      showGenerating(false);
+      failStream(block, err.message || 'Could not connect to the text provider.');
     });
+  }
+
+  function failStream(block, message) {
+    block.remove();
+    isGenerating = false;
+    setControlsEnabled(true);
+    showGenerating(false);
+    alert('Text generation failed: ' + message);
   }
 
   function stripChoiceLines(text) {
